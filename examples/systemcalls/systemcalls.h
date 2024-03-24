@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdarg.h>
 
+// needed for the system calls
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
