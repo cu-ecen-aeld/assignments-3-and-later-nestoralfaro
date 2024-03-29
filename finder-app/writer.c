@@ -7,6 +7,16 @@
 #include <unistd.h>
 #include <string.h>
 
+void closeSafely(int fd) {
+	if (close(fd) == -1) {
+		syslog(LOG_ERR, "Error closing file. Attempting to sync.");
+		if (fdatasync(fd) == -1) {
+			syslog(LOG_ERR, "Failed to synchronized file descriptor. Now synchronizing all buffers to disk");
+			sync();
+		}
+	}
+}
+
 int main(int argc, char *argv[]) {
 	openlog("writer", LOG_PID | LOG_CONS, LOG_USER | LOG_DEBUG);
 
@@ -40,14 +50,4 @@ int main(int argc, char *argv[]) {
 	closeSafely(fd);
 	closelog();
 	return EXIT_SUCCESS;
-}
-
-void closeSafely(int fd) {
-	if (close(fd) == -1) {
-		syslog(LOG_ERR, "Error closing file. Attempting to sync.");
-		if (fdatasync(fd) == -1) {
-			syslog(LOG_ERR, "Failed to synchronized file descriptor. Now synchronizing all buffers to disk");
-			sync();
-		}
-	}
 }
