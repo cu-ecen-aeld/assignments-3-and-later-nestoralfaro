@@ -55,7 +55,7 @@ fi
 
 for i in $( seq 1 $NUMFILES)
 do
-	./writer "$WRITEDIR/${username}$i.txt" "$WRITESTR"
+	writer "$WRITEDIR/${username}$i.txt" "$WRITESTR"
 done
 
 # pwd
@@ -63,10 +63,11 @@ done
 # echo $PATH
 # cat finder.sh
 # source ./finder.sh "$WRITEDIR" "$WRITESTR"
-OUTPUTSTRING=$(./finder.sh "$WRITEDIR" "$WRITESTR")
+OUTPUTSTRING=$(finder.sh "$WRITEDIR" "$WRITESTR")
 
 # remove temporary directories
-rm -rf /tmp/aeld-data
+# rm -rf /tmp/aeld-data
+rm -rf $WRITEDIR
 
 set +e
 echo ${OUTPUTSTRING} | grep "${MATCHSTR}"
