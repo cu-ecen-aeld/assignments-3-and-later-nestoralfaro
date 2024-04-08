@@ -2,6 +2,14 @@
 # Tester script for assignment 1 and assignment 2
 # Author: Siddhant Jajoo
 
+DNAME=$(dirname $0)
+echo "**************** RUNNIG finder-test.sh****************"
+echo "**************** RUNNIG finder-test.sh****************"
+echo "Currently in $0 or also " && pwd
+echo $DNAME
+echo "**************** RUNNIG finder-test.sh****************"
+echo "**************** RUNNIG finder-test.sh****************"
+
 set -e
 set -u
 
