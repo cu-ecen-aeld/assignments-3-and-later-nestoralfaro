@@ -3,14 +3,6 @@
 # Author: Siddhant Jajoo
 
 DNAME=$(dirname $0)
-echo "**************** RUNNIG finder-test.sh****************"
-echo "**************** RUNNIG finder-test.sh****************"
-echo "Currently in $0 or also " && pwd
-echo $DNAME
-echo ls -al
-echo ls ../ -al
-echo "**************** RUNNIG finder-test.sh****************"
-echo "**************** RUNNIG finder-test.sh****************"
 
 set -e
 set -u
@@ -74,6 +66,7 @@ done
 # cat finder.sh
 # source ./finder.sh "$WRITEDIR" "$WRITESTR"
 OUTPUTSTRING=$(finder.sh "$WRITEDIR" "$WRITESTR")
+echo $OUTPUTSTRING >> /tmp/assignment4-result.txt
 
 # remove temporary directories
 # rm -rf /tmp/aeld-data
@@ -83,7 +76,6 @@ set +e
 echo ${OUTPUTSTRING} | grep "${MATCHSTR}"
 if [ $? -eq 0 ]; then
 	echo "success"
-  $OUTPUTSTRING >> /tmp/assignment4-result.txt
 	exit 0
 else
 	echo "failed: expected  ${MATCHSTR} in ${OUTPUTSTRING} but instead found"
