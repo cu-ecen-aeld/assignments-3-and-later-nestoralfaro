@@ -7,6 +7,8 @@ echo "**************** RUNNIG finder-test.sh****************"
 echo "**************** RUNNIG finder-test.sh****************"
 echo "Currently in $0 or also " && pwd
 echo $DNAME
+echo ls -al
+echo ls ../ -al
 echo "**************** RUNNIG finder-test.sh****************"
 echo "**************** RUNNIG finder-test.sh****************"
 
