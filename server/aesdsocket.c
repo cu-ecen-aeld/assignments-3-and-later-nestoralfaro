@@ -93,7 +93,6 @@ int main(int argc, char *argv[]) {
     perror("socket");
     exit(EXIT_FAILURE);
   }
-
   // handle `bind: Address alredy in use`: https://stackoverflow.com/questions/24194961/how-do-i-use-setsockoptso-reuseaddr
   if (setsockopt(server_socketfd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0) {
     perror("setsockopt(SO_REUSEADDR)");
@@ -101,11 +100,11 @@ int main(int argc, char *argv[]) {
   }
 
   // 1. bind step: assign address to the socket
-  struct sockaddr_in server_address = {
-    AF_INET,
-    htons(PORT), // little endian network byte order for 9000 in hex 0x2823
-    0
-  };
+  struct sockaddr_in server_address;
+  memset(&server_address, 0, sizeof(server_address)); // initialize the struct to zero
+  server_address.sin_family = AF_INET;
+  server_address.sin_port = htons(PORT);
+  server_address.sin_addr.s_addr = INADDR_ANY;
   if (bind(server_socketfd, (struct sockaddr *)&server_address, sizeof(server_address)) < 0)  {
     perror("bind");
     exit(EXIT_FAILURE);
@@ -124,7 +123,8 @@ int main(int argc, char *argv[]) {
   // 3. accept/handle step:
   while (1) {
     struct sockaddr_in client_address;
-    client_socketfd = accept(server_socketfd, (struct sockaddr *)&client_address, (socklen_t *)&client_address);
+    socklen_t client_address_size = sizeof(struct sockaddr_in);
+    client_socketfd = accept(server_socketfd, (struct sockaddr *)&client_address, &client_address_size);
     if (client_socketfd < 0) {
       perror("accept");
       exit(EXIT_FAILURE);
@@ -163,6 +163,9 @@ int main(int argc, char *argv[]) {
           perror("realloc");
           exit(EXIT_FAILURE);
         }
+
+        // initialize the newly allocated memory
+        memset(buffer + total_bytes_received, 0, buffer_size - total_bytes_received);
       }
 
       // check for newline to consider packet complete
@@ -175,7 +178,6 @@ int main(int argc, char *argv[]) {
         break;
       }
     }
-
     fclose(data_file);
     free(buffer);
 
