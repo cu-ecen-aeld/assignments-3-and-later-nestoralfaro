@@ -3,7 +3,7 @@ SRCS = $(wildcard *.c)
 OBJS = $(SRCS:.c=.o)
 CFLAGS = -Wall -Wextra -g
 LDFLAGS = 
-LIBS = -lsystemd
+LIBS = #-lsystemd
 
 .PHONY: all clean
 
