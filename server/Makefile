@@ -3,13 +3,14 @@ TARGET = aesdsocket
 SRCS = $(wildcard *.c)
 OBJS = $(SRCS:.c=.o)
 CFLAGS = -Wall -Wextra -g
+LIBS = -lpthread
 
 .PHONY: all clean
 
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
-	$(CC) $^ -o $@
+	$(CC) $^ -o $@ $(LIBS)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
