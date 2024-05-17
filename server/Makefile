@@ -1,9 +1,9 @@
-CC = $(CROSS-COMPILE)gcc
-TARGET = aesdsocket 
-SRCS = $(wildcard *.c)
-OBJS = $(SRCS:.c=.o)
-CFLAGS = -Wall -Wextra -g
-LIBS = -lpthread
+CC ?= $(CROSS-COMPILE)gcc
+TARGET ?= aesdsocket 
+SRCS ?= $(wildcard *.c)
+OBJS ?= $(SRCS:.c=.o)
+CFLAGS ?= -Wall -Wextra -g
+LIBS ?= -lpthread
 
 .PHONY: all clean
 
