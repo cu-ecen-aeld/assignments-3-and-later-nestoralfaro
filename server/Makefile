@@ -3,7 +3,7 @@ TARGET ?= aesdsocket
 SRCS ?= $(wildcard *.c)
 OBJS ?= $(SRCS:.c=.o)
 CFLAGS ?= -Wall -Wextra -g
-LDFLAGS ?= -lpthread
+LDFLAGS ?= -lpthread -lrt
 
 .PHONY: all clean
 
