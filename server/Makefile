@@ -18,19 +18,50 @@
 # clean:
 # 	$(RM) $(TARGET) $(OBJS)
 
-CC ?= $(CROSS_COMPILE)gcc
-CFLAGS ?= -g -Wall -Werror
-LDFLAGS ?= -pthread -lrt
-TARGET ?= aesdsocket
 
-all: $(TARGET)
 
-$(TARGET): aesdsocket.o
-	@$(CC) aesdsocket.o -o $(TARGET) $(LDFLAGS)
+# # sort of working
+# CC ?= $(CROSS_COMPILE)gcc
+# CFLAGS ?= -g -Wall -Werror
+# LDFLAGS ?= -pthread -lrt
+# TARGET ?= aesdsocket
+#
+# all: $(TARGET)
+#
+# $(TARGET): aesdsocket.o
+# 	@$(CC) aesdsocket.o -o $(TARGET) $(LDFLAGS)
+#
+# %.o: %.c
+# 	@$(CC) $(CFLAGS) -c $< -o $@
+#
+# .PHONY: clean
+# clean:
+# 	@rm -f *.o $(TARGET)
 
-%.o: %.c
-	@$(CC) $(CFLAGS) -c $< -o $@
 
-.PHONY: clean
+
+
+
+
+CC ?= $(CROSS_COMPILE) gcc
+CFLAGS ?= -g -pthread
+LDFLAGS ?= -lm
+
+# ifeq ($(CROSS_COMPILE),)
+# 	$(info Compiling natively.)
+# else
+# 	CROSS_COMPILE_FULL = aarch64-none-linux-gnu-$(CROSS_COMPILE)
+# 	CC = $(CROSS_COMPILE_FULL)
+# 	$(info Cross compiling: $(CROSS_COMPILE_FULL))
+# endif
+
+all: clean aesdsocket.o aesdsocket
+
+aesdsocket: aesdsocket.o
+	$(CC) $(CFLAGS) aesdsocket.o -o aesdsocket $(LDFLAGS)
+
+aesdsocket.o: aesdsocket.c
+	$(CC) $(CFLAGS) -c aesdsocket.c -o aesdsocket.o $(LDFLAGS)
+
 clean:
-	@rm -f *.o $(TARGET)
+	rm -f aesdsocket aesdsocket.o
