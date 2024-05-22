@@ -1,6 +1,4 @@
 #include "aesdsocket.h"
-#include "queue.h"
-// #include "queue.h"
 // #include <pthread.h>
 // #include <stdio.h>
 // #include <stdlib.h>
@@ -185,9 +183,9 @@ void sig_handler(int signo) {
       if (pthread_join(thread_entry->thread, NULL) != 0) {
         perror("pthread_join");
       }
+      close(thread_entry->client_socketfd);
       SLIST_REMOVE_HEAD(&head, entries);
-      // close(thread_entry->client_socketfd);
-      free(thread_entry);
+      // free(thread_entry);
     }
 
     if (pthread_cancel(timestamp_thread) == -1) {
@@ -204,19 +202,19 @@ void sig_handler(int signo) {
     exit(EXIT_SUCCESS);
   }
   else if (signo == SIGALRM) {
-    pthread_mutex_lock(&mutex);
-    FILE *data_file = fopen(DATA_FILE, "a");
-    if (data_file != NULL) {
-      time_t current_time;
-      struct tm *time_info;
-      char timestamp_str[64];
-      time(&current_time);
-      time_info = localtime(&current_time);
-      strftime(timestamp_str, sizeof(timestamp_str), "timestamp:%a, %d %b %Y %H:%M:%S %z\n", time_info);
-      fprintf(data_file, "%s", timestamp_str);
-      fclose(data_file);
-    }
-    pthread_mutex_unlock(&mutex);
+    // pthread_mutex_lock(&mutex);
+    // FILE *data_file = fopen(DATA_FILE, "a");
+    // if (data_file != NULL) {
+    //   time_t current_time;
+    //   struct tm *time_info;
+    //   char timestamp_str[64];
+    //   time(&current_time);
+    //   time_info = localtime(&current_time);
+    //   strftime(timestamp_str, sizeof(timestamp_str), "timestamp:%a, %d %b %Y %H:%M:%S %z\n", time_info);
+    //   fprintf(data_file, "%s", timestamp_str);
+    //   fclose(data_file);
+    // }
+    // pthread_mutex_unlock(&mutex);
   }
 }
 
@@ -240,102 +238,8 @@ void *connection_handler (void* thread_arg) {
 
   size_t total_bytes_received = 0;
 
-  while ((bytes_received = recv(thread_entry->client_socketfd, buffer + total_bytes_received, buffer_size - total_bytes_received, 0)) > 0) {
-    total_bytes_received += bytes_received;
-    // if buffer is full
-    if (total_bytes_received == buffer_size) {
-      // double the buffer size
-      buffer_size *= 2;
-      buffer = realloc(buffer, buffer_size); // resize buffer
-      if (buffer == NULL) {
-        perror("realloc");
-        close(thread_entry->client_socketfd);
-        free(thread_entry);
-        pthread_exit(NULL);
-      }
-    }
-
-    // check for newline to consider packet complete
-    char *newline = strchr(buffer, '\n');
-    if (newline != NULL) {
-      syslog(LOG_INFO, "Received full data packet from %s", inet_ntoa(client_address.sin_addr));
-      // write only up to the newline character
-      size_t bytes_to_write = newline - buffer + 1; // include the newline character
-
-      pthread_mutex_lock(&mutex);
-      // printf("Buffer content: ");
-      // for (size_t i = 0; i < total_bytes_received; ++i) {
-      //   putchar(buffer[i]);
-      // }
-      // printf("\n");
-      FILE *data_file_a = fopen(DATA_FILE, "a");
-      // printf("FIRST connection_handler: %d\n", fileno(data_file));
-      if (data_file_a == NULL) {
-        perror("fopen");
-        pthread_mutex_unlock(&mutex);
-        close(thread_entry->client_socketfd);
-        free(buffer);
-        free(thread_entry);
-        pthread_exit(NULL);
-      }
-      fwrite(buffer, 1, bytes_to_write, data_file_a);
-      fclose(data_file_a);
-
-      // send the data back
-      FILE *data_file = fopen(DATA_FILE, "r");
-      // printf("SECOND connection_handler: %d\n", fileno(data_file));
-      if (data_file == NULL) {
-        perror("fopen");
-        pthread_mutex_unlock(&mutex);
-        close(thread_entry->client_socketfd);
-        free(buffer);
-        free(thread_entry);
-        pthread_exit(NULL);
-      }
-
-      // calculate file size
-      fseek(data_file, 0, SEEK_END);
-      long file_size = ftell(data_file);
-      rewind(data_file);
-
-      // read content
-      char *file_content = malloc(file_size);
-      if (file_content == NULL) {
-        perror("file_content malloc");
-        fclose(data_file);
-        pthread_mutex_unlock(&mutex);
-        close(thread_entry->client_socketfd);
-        free(buffer);
-        free(thread_entry);
-        pthread_exit(NULL);
-      }
-      fread(file_content, 1, file_size, data_file);
-      fclose(data_file);
-
-      // send to client
-      // printf("Sending content: ");
-      // for (size_t i = 0; i < file_size; ++i) {
-      //   putchar(file_content[i]);
-      // }
-      // printf("\n");
-      send(thread_entry->client_socketfd, file_content, file_size, 0);
-      free(file_content);
-      pthread_mutex_unlock(&mutex);
-      // break;
-    }
-  }
-
-
-
-
-  // old packet handling
-  // while ((bytes_received = recv(thread_entry->client_socketfd, buffer + total_bytes_received, buffer_size - total_bytes_received, 0))) {
-  //   if (bytes_received < 0) {
-  //     perror("recv");
-  //     exit(EXIT_FAILURE);
-  //   }
+  // while ((bytes_received = recv(thread_entry->client_socketfd, buffer + total_bytes_received, buffer_size - total_bytes_received, 0)) > 0) {
   //   total_bytes_received += bytes_received;
-  //
   //   // if buffer is full
   //   if (total_bytes_received == buffer_size) {
   //     // double the buffer size
@@ -343,11 +247,10 @@ void *connection_handler (void* thread_arg) {
   //     buffer = realloc(buffer, buffer_size); // resize buffer
   //     if (buffer == NULL) {
   //       perror("realloc");
-  //       exit(EXIT_FAILURE);
+  //       close(thread_entry->client_socketfd);
+  //       free(thread_entry);
+  //       pthread_exit(NULL);
   //     }
-  //
-  //     // initialize the newly allocated memory
-  //     memset(buffer + total_bytes_received, 0, buffer_size - total_bytes_received);
   //   }
   //
   //   // check for newline to consider packet complete
@@ -356,18 +259,22 @@ void *connection_handler (void* thread_arg) {
   //     syslog(LOG_INFO, "Received full data packet from %s", inet_ntoa(client_address.sin_addr));
   //     // write only up to the newline character
   //     size_t bytes_to_write = newline - buffer + 1; // include the newline character
-  //     pthread_mutex_lock(&mutex);
   //
-  //     printf("Buffer content: ");
-  //     for (size_t i = 0; i < total_bytes_received; ++i) {
-  //       putchar(buffer[i]);
-  //     }
-  //     printf("\n");
+  //     pthread_mutex_lock(&mutex);
+  //     // printf("Buffer content: ");
+  //     // for (size_t i = 0; i < total_bytes_received; ++i) {
+  //     //   putchar(buffer[i]);
+  //     // }
+  //     // printf("\n");
   //     FILE *data_file_a = fopen(DATA_FILE, "a");
   //     // printf("FIRST connection_handler: %d\n", fileno(data_file));
   //     if (data_file_a == NULL) {
   //       perror("fopen");
-  //       exit(EXIT_FAILURE);
+  //       pthread_mutex_unlock(&mutex);
+  //       close(thread_entry->client_socketfd);
+  //       free(buffer);
+  //       free(thread_entry);
+  //       pthread_exit(NULL);
   //     }
   //     fwrite(buffer, 1, bytes_to_write, data_file_a);
   //     fclose(data_file_a);
@@ -377,7 +284,11 @@ void *connection_handler (void* thread_arg) {
   //     // printf("SECOND connection_handler: %d\n", fileno(data_file));
   //     if (data_file == NULL) {
   //       perror("fopen");
-  //       exit(EXIT_FAILURE);
+  //       pthread_mutex_unlock(&mutex);
+  //       close(thread_entry->client_socketfd);
+  //       free(buffer);
+  //       free(thread_entry);
+  //       pthread_exit(NULL);
   //     }
   //
   //     // calculate file size
@@ -389,23 +300,110 @@ void *connection_handler (void* thread_arg) {
   //     char *file_content = malloc(file_size);
   //     if (file_content == NULL) {
   //       perror("file_content malloc");
-  //       exit(EXIT_FAILURE);
+  //       fclose(data_file);
+  //       pthread_mutex_unlock(&mutex);
+  //       close(thread_entry->client_socketfd);
+  //       free(buffer);
+  //       free(thread_entry);
+  //       pthread_exit(NULL);
   //     }
   //     fread(file_content, 1, file_size, data_file);
   //     fclose(data_file);
   //
   //     // send to client
-  //     printf("Sending content: ");
-  //     for (size_t i = 0; i < file_size; ++i) {
-  //       putchar(file_content[i]);
-  //     }
-  //     printf("\n");
+  //     // printf("Sending content: ");
+  //     // for (size_t i = 0; i < file_size; ++i) {
+  //     //   putchar(file_content[i]);
+  //     // }
+  //     // printf("\n");
   //     send(thread_entry->client_socketfd, file_content, file_size, 0);
   //     free(file_content);
   //     pthread_mutex_unlock(&mutex);
   //     // break;
   //   }
   // }
+
+
+
+
+  // old packet handling
+  while ((bytes_received = recv(thread_entry->client_socketfd, buffer + total_bytes_received, buffer_size - total_bytes_received, 0))) {
+    if (bytes_received < 0) {
+      perror("recv");
+      exit(EXIT_FAILURE);
+    }
+    total_bytes_received += bytes_received;
+
+    // if buffer is full
+    if (total_bytes_received == buffer_size) {
+      // double the buffer size
+      buffer_size *= 2;
+      buffer = realloc(buffer, buffer_size); // resize buffer
+      if (buffer == NULL) {
+        perror("realloc");
+        exit(EXIT_FAILURE);
+      }
+
+      // initialize the newly allocated memory
+      memset(buffer + total_bytes_received, 0, buffer_size - total_bytes_received);
+    }
+
+    // check for newline to consider packet complete
+    char *newline = strchr(buffer, '\n');
+    if (newline != NULL) {
+      syslog(LOG_INFO, "Received full data packet from %s", inet_ntoa(client_address.sin_addr));
+      // write only up to the newline character
+      size_t bytes_to_write = newline - buffer + 1; // include the newline character
+      pthread_mutex_lock(&mutex);
+
+      printf("Buffer content: ");
+      for (size_t i = 0; i < total_bytes_received; ++i) {
+        putchar(buffer[i]);
+      }
+      printf("\n");
+      FILE *data_file_a = fopen(DATA_FILE, "a");
+      // printf("FIRST connection_handler: %d\n", fileno(data_file));
+      if (data_file_a == NULL) {
+        perror("fopen");
+        exit(EXIT_FAILURE);
+      }
+      fwrite(buffer, 1, bytes_to_write, data_file_a);
+      fclose(data_file_a);
+
+      // send the data back
+      FILE *data_file = fopen(DATA_FILE, "r");
+      // printf("SECOND connection_handler: %d\n", fileno(data_file));
+      if (data_file == NULL) {
+        perror("fopen");
+        exit(EXIT_FAILURE);
+      }
+
+      // calculate file size
+      fseek(data_file, 0, SEEK_END);
+      long file_size = ftell(data_file);
+      rewind(data_file);
+
+      // read content
+      char *file_content = malloc(file_size);
+      if (file_content == NULL) {
+        perror("file_content malloc");
+        exit(EXIT_FAILURE);
+      }
+      fread(file_content, 1, file_size, data_file);
+      fclose(data_file);
+
+      // send to client
+      printf("Sending content: ");
+      for (size_t i = 0; i < file_size; ++i) {
+        putchar(file_content[i]);
+      }
+      printf("\n");
+      send(thread_entry->client_socketfd, file_content, file_size, 0);
+      free(file_content);
+      pthread_mutex_unlock(&mutex);
+      // break;
+    }
+  }
 
   // return data to client
   // pthread_mutex_lock(&mutex);
