@@ -433,22 +433,22 @@ void daemonize() {
     // exit parent process
     exit(EXIT_SUCCESS);
   }
-
-  // change the file mode mask
-  umask(0);
-
-  // create a new SID for the child process
-  if (setsid() < 0) {
-    perror("setsid");
-    exit(EXIT_FAILURE);
-  }
-  // change the current working directory to root
-  if (chdir("/") < 0) {
-    perror("chdir");
-    exit(EXIT_FAILURE);
-  }
-  // close the standard file descriptors
-  close(STDIN_FILENO);
-  close(STDOUT_FILENO);
-  close(STDERR_FILENO);
+  //
+  // // change the file mode mask
+  // umask(0);
+  //
+  // // create a new SID for the child process
+  // if (setsid() < 0) {
+  //   perror("setsid");
+  //   exit(EXIT_FAILURE);
+  // }
+  // // change the current working directory to root
+  // if (chdir("/") < 0) {
+  //   perror("chdir");
+  //   exit(EXIT_FAILURE);
+  // }
+  // // close the standard file descriptors
+  // close(STDIN_FILENO);
+  // close(STDOUT_FILENO);
+  // close(STDERR_FILENO);
 }
