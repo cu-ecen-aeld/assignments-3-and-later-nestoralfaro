@@ -233,7 +233,7 @@ void *connection_handler (void* thread_arg) {
     perror("buffer malloc");
     close(thread_entry->client_socketfd);
     free(thread_entry);
-    pthread_exit(NULL);
+    // pthread_exit(NULL);
   }
 
   size_t total_bytes_received = 0;
@@ -415,7 +415,7 @@ void *connection_handler (void* thread_arg) {
   // free(thread_entry);
   // pthread_mutex_unlock(&mutex);
   syslog(LOG_INFO, "Closed connection from %s", inet_ntoa(client_address.sin_addr));
-  pthread_exit(NULL);
+  // pthread_exit(NULL);
 }
 
 void daemonize() {
