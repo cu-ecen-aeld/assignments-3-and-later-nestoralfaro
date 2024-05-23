@@ -18,6 +18,15 @@
 #define PORT 9000
 #define DATA_FILE "/var/tmp/aesdsocketdata"
 
+
+// linked list for threads
+struct slist_thread {
+  pthread_t thread;
+  int client_socketfd;
+  bool completed;
+  SLIST_ENTRY(slist_thread) entries;
+};
+
 void daemonize();
 void *add_timestamp(void* arg);
 void *connection_handler (void* thread_arg);

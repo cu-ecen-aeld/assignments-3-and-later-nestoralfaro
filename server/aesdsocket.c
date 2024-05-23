@@ -1,30 +1,17 @@
 #include "aesdsocket.h"
-// #include <pthread.h>
-// #include <stdio.h>
-// #include <stdlib.h>
-// #include <sys/time.h>
-// #include <time.h>
 
 int server_socketfd;
-int client_socketfd;
+// int client_socketfd;
 bool daemon_mode = false;
 pthread_mutex_t mutex;
 pthread_t timestamp_thread;
-
-// linked list for threads
-struct slist_thread {
-  pthread_t thread;
-  int client_socketfd;
-  bool completed;
-  SLIST_ENTRY(slist_thread) entries;
-};
 SLIST_HEAD(slisthead, slist_thread) head;
 
 int main(int argc, char *argv[]) {
   openlog("aesdsocket", LOG_CONS | LOG_PID | LOG_NDELAY | LOG_PERROR, LOG_LOCAL1);
-  int opt;
 
   // parse cli args
+  int opt;
   while ((opt = getopt(argc, argv, "d")) != -1) {
     switch (opt) {
       case 'd':
@@ -45,10 +32,7 @@ int main(int argc, char *argv[]) {
   sigaction(SIGTERM, &sigact, NULL);
   sigaction(SIGALRM, &sigact, NULL);
 
-
   SLIST_INIT(&head);
-
-
 
   // 0. socket step: establishing connection
   server_socketfd = socket(PF_INET, SOCK_STREAM, 0);
@@ -73,8 +57,6 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
 
-
-
   // 2. listen step: initialize socket for incoming connections
   if (listen(server_socketfd, 5) < 0) {
     perror("listen");
@@ -90,32 +72,11 @@ int main(int argc, char *argv[]) {
     daemonize(); // convert the server to a daemon
   }
 
-
-  // timer for periodic timestamps
-  // struct itimerval timer;
-  // timer.it_value.tv_sec = 10;
-  // timer.it_value.tv_usec = 0;
-  // timer.it_interval.tv_sec = 10;
-  // timer.it_interval.tv_usec = 0;
-  // if (setitimer(ITIMER_REAL, &timer, NULL) < 0) {
-  //   perror("setitimer");
-  //   exit(EXIT_FAILURE);
-  // }
-
   // 3. accept/handle step:
-  // struct slist_thread *timestamp_thread_entry = (struct slist_thread *)malloc(sizeof(struct slist_thread));
-  // if (timestamp_thread_entry == NULL) {
-  //   perror("timestamp_thread malloc");
-  //   exit(EXIT_FAILURE);
-  // }
-  // timestamp_thread_entry->completed = false;
   if (pthread_create(&timestamp_thread, NULL, add_timestamp, NULL) != 0) {
     perror("timestamp_thread pthread_create");
-    // free(timestamp_thread);
     exit(EXIT_FAILURE);
   }
-  // SLIST_INSERT_HEAD(&head, timestamp_thread_entry, entries);
-
   while (1) {
     struct slist_thread *thread_entry = (struct slist_thread *)malloc(sizeof(struct slist_thread));
     if (thread_entry == NULL) {
@@ -232,104 +193,17 @@ void *connection_handler (void* thread_arg) {
   if (buffer == NULL) {
     perror("buffer malloc");
     close(thread_entry->client_socketfd);
-    free(thread_entry);
-    // pthread_exit(NULL);
+    thread_entry->completed = true;
+    // free(thread_entry); // does removing it from the `SLIST` free it already?
+    exit(EXIT_FAILURE);
   }
 
   size_t total_bytes_received = 0;
 
-  // while ((bytes_received = recv(thread_entry->client_socketfd, buffer + total_bytes_received, buffer_size - total_bytes_received, 0)) > 0) {
-  //   total_bytes_received += bytes_received;
-  //   // if buffer is full
-  //   if (total_bytes_received == buffer_size) {
-  //     // double the buffer size
-  //     buffer_size *= 2;
-  //     buffer = realloc(buffer, buffer_size); // resize buffer
-  //     if (buffer == NULL) {
-  //       perror("realloc");
-  //       close(thread_entry->client_socketfd);
-  //       free(thread_entry);
-  //       pthread_exit(NULL);
-  //     }
-  //   }
-  //
-  //   // check for newline to consider packet complete
-  //   char *newline = strchr(buffer, '\n');
-  //   if (newline != NULL) {
-  //     syslog(LOG_INFO, "Received full data packet from %s", inet_ntoa(client_address.sin_addr));
-  //     // write only up to the newline character
-  //     size_t bytes_to_write = newline - buffer + 1; // include the newline character
-  //
-  //     pthread_mutex_lock(&mutex);
-  //     // printf("Buffer content: ");
-  //     // for (size_t i = 0; i < total_bytes_received; ++i) {
-  //     //   putchar(buffer[i]);
-  //     // }
-  //     // printf("\n");
-  //     FILE *data_file_a = fopen(DATA_FILE, "a");
-  //     // printf("FIRST connection_handler: %d\n", fileno(data_file));
-  //     if (data_file_a == NULL) {
-  //       perror("fopen");
-  //       pthread_mutex_unlock(&mutex);
-  //       close(thread_entry->client_socketfd);
-  //       free(buffer);
-  //       free(thread_entry);
-  //       pthread_exit(NULL);
-  //     }
-  //     fwrite(buffer, 1, bytes_to_write, data_file_a);
-  //     fclose(data_file_a);
-  //
-  //     // send the data back
-  //     FILE *data_file = fopen(DATA_FILE, "r");
-  //     // printf("SECOND connection_handler: %d\n", fileno(data_file));
-  //     if (data_file == NULL) {
-  //       perror("fopen");
-  //       pthread_mutex_unlock(&mutex);
-  //       close(thread_entry->client_socketfd);
-  //       free(buffer);
-  //       free(thread_entry);
-  //       pthread_exit(NULL);
-  //     }
-  //
-  //     // calculate file size
-  //     fseek(data_file, 0, SEEK_END);
-  //     long file_size = ftell(data_file);
-  //     rewind(data_file);
-  //
-  //     // read content
-  //     char *file_content = malloc(file_size);
-  //     if (file_content == NULL) {
-  //       perror("file_content malloc");
-  //       fclose(data_file);
-  //       pthread_mutex_unlock(&mutex);
-  //       close(thread_entry->client_socketfd);
-  //       free(buffer);
-  //       free(thread_entry);
-  //       pthread_exit(NULL);
-  //     }
-  //     fread(file_content, 1, file_size, data_file);
-  //     fclose(data_file);
-  //
-  //     // send to client
-  //     // printf("Sending content: ");
-  //     // for (size_t i = 0; i < file_size; ++i) {
-  //     //   putchar(file_content[i]);
-  //     // }
-  //     // printf("\n");
-  //     send(thread_entry->client_socketfd, file_content, file_size, 0);
-  //     free(file_content);
-  //     pthread_mutex_unlock(&mutex);
-  //     // break;
-  //   }
-  // }
-
-
-
-
-  // old packet handling
   while ((bytes_received = recv(thread_entry->client_socketfd, buffer + total_bytes_received, buffer_size - total_bytes_received, 0))) {
     if (bytes_received < 0) {
       perror("recv");
+      thread_entry->completed = true;
       exit(EXIT_FAILURE);
     }
     total_bytes_received += bytes_received;
@@ -341,6 +215,7 @@ void *connection_handler (void* thread_arg) {
       buffer = realloc(buffer, buffer_size); // resize buffer
       if (buffer == NULL) {
         perror("realloc");
+        thread_entry->completed = true;
         exit(EXIT_FAILURE);
       }
 
@@ -356,15 +231,16 @@ void *connection_handler (void* thread_arg) {
       size_t bytes_to_write = newline - buffer + 1; // include the newline character
       pthread_mutex_lock(&mutex);
 
-      printf("Buffer content: ");
-      for (size_t i = 0; i < total_bytes_received; ++i) {
-        putchar(buffer[i]);
-      }
-      printf("\n");
+      // printf("Buffer content: ");
+      // for (size_t i = 0; i < total_bytes_received; ++i) {
+      //   putchar(buffer[i]);
+      // }
+      // printf("\n");
       FILE *data_file_a = fopen(DATA_FILE, "a");
       // printf("FIRST connection_handler: %d\n", fileno(data_file));
       if (data_file_a == NULL) {
         perror("fopen");
+        thread_entry->completed = true;
         exit(EXIT_FAILURE);
       }
       fwrite(buffer, 1, bytes_to_write, data_file_a);
@@ -375,6 +251,7 @@ void *connection_handler (void* thread_arg) {
       // printf("SECOND connection_handler: %d\n", fileno(data_file));
       if (data_file == NULL) {
         perror("fopen");
+        thread_entry->completed = true;
         exit(EXIT_FAILURE);
       }
 
@@ -387,17 +264,18 @@ void *connection_handler (void* thread_arg) {
       char *file_content = malloc(file_size);
       if (file_content == NULL) {
         perror("file_content malloc");
+        thread_entry->completed = true;
         exit(EXIT_FAILURE);
       }
       fread(file_content, 1, file_size, data_file);
       fclose(data_file);
 
       // send to client
-      printf("Sending content: ");
-      for (size_t i = 0; i < file_size; ++i) {
-        putchar(file_content[i]);
-      }
-      printf("\n");
+      // printf("Sending content: ");
+      // for (size_t i = 0; i < file_size; ++i) {
+      //   putchar(file_content[i]);
+      // }
+      // printf("\n");
       send(thread_entry->client_socketfd, file_content, file_size, 0);
       free(file_content);
       pthread_mutex_unlock(&mutex);
@@ -410,12 +288,13 @@ void *connection_handler (void* thread_arg) {
 
   // clean up
   close(thread_entry->client_socketfd);
-  thread_entry->completed = true;
   free(buffer);
+  thread_entry->completed = true;
   // free(thread_entry);
   // pthread_mutex_unlock(&mutex);
   syslog(LOG_INFO, "Closed connection from %s", inet_ntoa(client_address.sin_addr));
   // pthread_exit(NULL);
+  // exit(EXIT_SUCCESS);
 }
 
 void daemonize() {
@@ -433,10 +312,12 @@ void daemonize() {
     // exit parent process
     exit(EXIT_SUCCESS);
   }
+
   //
   // // change the file mode mask
   // umask(0);
   //
+
   // // create a new SID for the child process
   // if (setsid() < 0) {
   //   perror("setsid");
