@@ -10,14 +10,12 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <arpa/inet.h>
-#include <getopt.h> // for cli args parsing
 #include <pthread.h>
 #include <sys/queue.h>
 #include <stdbool.h>
 
 #define PORT 9000
 #define DATA_FILE "/var/tmp/aesdsocketdata"
-
 
 // linked list for threads
 struct slist_thread {
@@ -27,7 +25,7 @@ struct slist_thread {
   SLIST_ENTRY(slist_thread) entries;
 };
 
+void sig_handler(int signo);
 void daemonize();
 void *add_timestamp(void* arg);
 void *connection_handler (void* thread_arg);
-void sig_handler(int signo);

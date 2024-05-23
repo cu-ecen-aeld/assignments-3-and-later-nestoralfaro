@@ -1,7 +1,6 @@
 #include "aesdsocket.h"
 
 int server_socketfd;
-// int client_socketfd;
 bool daemon_mode = false;
 pthread_mutex_t mutex;
 pthread_t timestamp_thread;
@@ -31,8 +30,6 @@ int main(int argc, char *argv[]) {
   sigaction(SIGINT, &sigact, NULL);
   sigaction(SIGTERM, &sigact, NULL);
   sigaction(SIGALRM, &sigact, NULL);
-
-  SLIST_INIT(&head);
 
   // 0. socket step: establishing connection
   server_socketfd = socket(PF_INET, SOCK_STREAM, 0);
@@ -72,17 +69,21 @@ int main(int argc, char *argv[]) {
     daemonize(); // convert the server to a daemon
   }
 
-  // 3. accept/handle step:
+  SLIST_INIT(&head);
+
   if (pthread_create(&timestamp_thread, NULL, add_timestamp, NULL) != 0) {
     perror("timestamp_thread pthread_create");
     exit(EXIT_FAILURE);
   }
+
+  // 3. accept/handle step:
   while (1) {
     struct slist_thread *thread_entry = (struct slist_thread *)malloc(sizeof(struct slist_thread));
     if (thread_entry == NULL) {
       perror("thread_entry malloc");
       exit(EXIT_FAILURE);
     }
+    thread_entry->completed = false;
 
     struct sockaddr_in client_address;
     socklen_t client_address_size = sizeof(struct sockaddr_in);
@@ -99,37 +100,16 @@ int main(int argc, char *argv[]) {
       continue;
     }
     SLIST_INSERT_HEAD(&head, thread_entry, entries);
-    SLIST_FOREACH(thread_entry, &head, entries) {
-      if (thread_entry->completed) {
-        pthread_join(thread_entry->thread, NULL);
-        SLIST_REMOVE(&head, thread_entry, slist_thread, entries);
+
+    struct slist_thread *current_thread_entry;
+    SLIST_FOREACH(current_thread_entry, &head, entries) {
+      if (current_thread_entry->completed) {
+        if (pthread_join(current_thread_entry->thread, NULL) != 0) {
+          perror("SLIST_FOREACH CLEANUP pthread_join current_thread_entry");
+        }
+        SLIST_REMOVE(&head, current_thread_entry, slist_thread, entries);
       }
     }
-    free(thread_entry);
-  }
-  close(server_socketfd);
-  return 0;
-}
-
-void *add_timestamp(void* arg) {
-  while (1) {
-    time_t current_time;
-    struct tm *time_info;
-    char timestamp_str[64];
-    time(&current_time);
-    time_info = localtime(&current_time);
-    strftime(timestamp_str, sizeof(timestamp_str), "timestamp:%a, %d %b %Y %H:%M:%S %z", time_info);
-    // open file and write timestamp
-    pthread_mutex_lock(&mutex);
-    FILE *data_file = fopen(DATA_FILE, "a");
-    if (data_file != NULL) {
-      // printf("add_timestamp: %d\n", fileno(data_file));
-      fprintf(data_file, "%s\n", timestamp_str);
-      fclose(data_file);
-    }
-    pthread_mutex_unlock(&mutex);
-    // string should be appended every 10 seconds
-    sleep(10);
   }
 }
 
@@ -139,14 +119,13 @@ void sig_handler(int signo) {
     while (!SLIST_EMPTY(&head)) {
       thread_entry = SLIST_FIRST(&head);
       if (pthread_cancel(thread_entry->thread) == -1) {
-        perror("pthread_cancel");
+        perror("pthread_cancel SHUTDOWN thread_entry");
       }
       if (pthread_join(thread_entry->thread, NULL) != 0) {
-        perror("pthread_join");
+        perror("pthread_join SHUTDOWN thread_entry");
       }
       close(thread_entry->client_socketfd);
       SLIST_REMOVE_HEAD(&head, entries);
-      // free(thread_entry);
     }
 
     if (pthread_cancel(timestamp_thread) == -1) {
@@ -179,6 +158,64 @@ void sig_handler(int signo) {
   }
 }
 
+void daemonize() {
+  pid_t pid;
+
+  // fork off the parent process
+  pid = fork();
+  if (pid < 0) {
+    perror("fork");
+    exit(EXIT_FAILURE);
+  }
+
+  // if we got a PID
+  if (pid > 0) {
+    // exit parent process
+    exit(EXIT_SUCCESS);
+  }
+
+  //
+  // // change the file mode mask
+  // umask(0);
+  //
+
+  // // create a new SID for the child process
+  // if (setsid() < 0) {
+  //   perror("setsid");
+  //   exit(EXIT_FAILURE);
+  // }
+  // // change the current working directory to root MAKE SURE TO SYNCH with start-stop-aesdsocket.sh
+  // if (chdir("/") < 0) {
+  //   perror("chdir");
+  //   exit(EXIT_FAILURE);
+  // }
+  // // close the standard file descriptors
+  // close(STDIN_FILENO);
+  // close(STDOUT_FILENO);
+  // close(STDERR_FILENO);
+}
+
+void *add_timestamp(void* arg) {
+  while (1) {
+    time_t current_time;
+    struct tm *time_info;
+    char timestamp_str[64];
+    time(&current_time);
+    time_info = localtime(&current_time);
+    strftime(timestamp_str, sizeof(timestamp_str), "timestamp:%a, %d %b %Y %H:%M:%S %z", time_info);
+    // open file and write timestamp
+    pthread_mutex_lock(&mutex);
+    FILE *data_file = fopen(DATA_FILE, "a");
+    if (data_file != NULL) {
+      fprintf(data_file, "%s\n", timestamp_str);
+      fclose(data_file);
+    }
+    pthread_mutex_unlock(&mutex);
+    // string should be appended every 10 seconds
+    sleep(10);
+  }
+}
+
 void *connection_handler (void* thread_arg) {
   struct slist_thread *thread_entry = (struct slist_thread*)thread_arg;
   struct sockaddr_in client_address;
@@ -194,7 +231,6 @@ void *connection_handler (void* thread_arg) {
     perror("buffer malloc");
     close(thread_entry->client_socketfd);
     thread_entry->completed = true;
-    // free(thread_entry); // does removing it from the `SLIST` free it already?
     exit(EXIT_FAILURE);
   }
 
@@ -227,17 +263,11 @@ void *connection_handler (void* thread_arg) {
     char *newline = strchr(buffer, '\n');
     if (newline != NULL) {
       syslog(LOG_INFO, "Received full data packet from %s", inet_ntoa(client_address.sin_addr));
+
       // write only up to the newline character
       size_t bytes_to_write = newline - buffer + 1; // include the newline character
       pthread_mutex_lock(&mutex);
-
-      // printf("Buffer content: ");
-      // for (size_t i = 0; i < total_bytes_received; ++i) {
-      //   putchar(buffer[i]);
-      // }
-      // printf("\n");
       FILE *data_file_a = fopen(DATA_FILE, "a");
-      // printf("FIRST connection_handler: %d\n", fileno(data_file));
       if (data_file_a == NULL) {
         perror("fopen");
         thread_entry->completed = true;
@@ -248,7 +278,6 @@ void *connection_handler (void* thread_arg) {
 
       // send the data back
       FILE *data_file = fopen(DATA_FILE, "r");
-      // printf("SECOND connection_handler: %d\n", fileno(data_file));
       if (data_file == NULL) {
         perror("fopen");
         thread_entry->completed = true;
@@ -271,65 +300,15 @@ void *connection_handler (void* thread_arg) {
       fclose(data_file);
 
       // send to client
-      // printf("Sending content: ");
-      // for (size_t i = 0; i < file_size; ++i) {
-      //   putchar(file_content[i]);
-      // }
-      // printf("\n");
       send(thread_entry->client_socketfd, file_content, file_size, 0);
       free(file_content);
       pthread_mutex_unlock(&mutex);
-      // break;
     }
   }
-
-  // return data to client
-  // pthread_mutex_lock(&mutex);
 
   // clean up
   close(thread_entry->client_socketfd);
   free(buffer);
   thread_entry->completed = true;
-  // free(thread_entry);
-  // pthread_mutex_unlock(&mutex);
   syslog(LOG_INFO, "Closed connection from %s", inet_ntoa(client_address.sin_addr));
-  // pthread_exit(NULL);
-  // exit(EXIT_SUCCESS);
-}
-
-void daemonize() {
-  pid_t pid;
-
-  // fork off the parent process
-  pid = fork();
-  if (pid < 0) {
-    perror("fork");
-    exit(EXIT_FAILURE);
-  }
-
-  // if we got a PID
-  if (pid > 0) {
-    // exit parent process
-    exit(EXIT_SUCCESS);
-  }
-
-  //
-  // // change the file mode mask
-  // umask(0);
-  //
-
-  // // create a new SID for the child process
-  // if (setsid() < 0) {
-  //   perror("setsid");
-  //   exit(EXIT_FAILURE);
-  // }
-  // // change the current working directory to root
-  // if (chdir("/") < 0) {
-  //   perror("chdir");
-  //   exit(EXIT_FAILURE);
-  // }
-  // // close the standard file descriptors
-  // close(STDIN_FILENO);
-  // close(STDOUT_FILENO);
-  // close(STDERR_FILENO);
 }
