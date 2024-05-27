@@ -75,6 +75,7 @@ int main(int argc, char *argv[]) {
 
   SLIST_INIT(&head);
 
+  syslog(LOG_DEBUG, "USE_AESD_CHAR_DEVICE value: %d", USE_AESD_CHAR_DEVICE);
   #if !USE_AESD_CHAR_DEVICE
   // if (pthread_create(&timestamp_thread, NULL, add_timestamp, NULL) != 0) {
   //   perror("timestamp_thread pthread_create");

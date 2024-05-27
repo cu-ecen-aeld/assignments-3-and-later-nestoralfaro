@@ -17,13 +17,13 @@
 #define PORT 9000
 
 #ifndef USE_AESD_CHAR_DEVICE
-#define USE_AESD_CHAR_DEVICE 1
+# define USE_AESD_CHAR_DEVICE 1
 #endif
 
 #if USE_AESD_CHAR_DEVICE
-#define DATA_FILE "/dev/aesdchar"
+# define DATA_FILE "/dev/aesdchar"
 #else
-#define DATA_FILE "/var/tmp/aesdsocketdata"
+# define DATA_FILE "/var/tmp/aesdsocketdata"
 #endif
 
 // linked list for threads
