@@ -238,6 +238,7 @@ void *connection_handler (void* thread_arg) {
   struct sockaddr_in client_address;
   socklen_t client_address_size = sizeof(client_address);
   if (getpeername(thread_entry->client_socketfd, (struct sockaddr *)&client_address, &client_address_size) == 0) {
+    syslog(LOG_DEBUG, "USE_AESD_CHAR_DEVICE value: %d", USE_AESD_CHAR_DEVICE);
     syslog(LOG_INFO, "Accepted connection from %s\n", inet_ntoa(client_address.sin_addr));
   }
 
