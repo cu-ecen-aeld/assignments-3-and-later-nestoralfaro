@@ -15,7 +15,16 @@
 #include <stdbool.h>
 
 #define PORT 9000
+
+#ifndef USE_AESD_CHAR_DEVICE
+#define USE_AESD_CHAR_DEVICE 0
+#endif
+
+#if USE_AESD_CHAR_DEVICE
+#define DATA_FILE "/dev/aesdchar"
+#else
 #define DATA_FILE "/var/tmp/aesdsocketdata"
+#endif
 
 // linked list for threads
 struct slist_thread {
@@ -27,5 +36,7 @@ struct slist_thread {
 
 void sig_handler(int signo);
 void daemonize();
+#if !USE_AESD_CHAR_DEVICE
 void *add_timestamp(void* arg);
+#endif
 void *connection_handler (void* thread_arg);

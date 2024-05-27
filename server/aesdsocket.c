@@ -3,7 +3,9 @@
 int server_socketfd;
 bool daemon_mode = false;
 pthread_mutex_t mutex;
+#if !USE_AESD_CHAR_DEVICE
 pthread_t timestamp_thread;
+#endif
 SLIST_HEAD(slisthead, slist_thread) head;
 
 int main(int argc, char *argv[]) {
@@ -29,7 +31,9 @@ int main(int argc, char *argv[]) {
   sigact.sa_flags = 0;
   sigaction(SIGINT, &sigact, NULL);
   sigaction(SIGTERM, &sigact, NULL);
+#if !USE_AESD_CHAR_DEVICE
   sigaction(SIGALRM, &sigact, NULL);
+#endif
 
   // 0. socket step: establishing connection
   server_socketfd = socket(PF_INET, SOCK_STREAM, 0);
@@ -71,10 +75,12 @@ int main(int argc, char *argv[]) {
 
   SLIST_INIT(&head);
 
+#if !USE_AESD_CHAR_DEVICE
   if (pthread_create(&timestamp_thread, NULL, add_timestamp, NULL) != 0) {
     perror("timestamp_thread pthread_create");
     exit(EXIT_FAILURE);
   }
+#endif
 
   // 3. accept/handle step:
   while (1) {
@@ -108,6 +114,7 @@ int main(int argc, char *argv[]) {
           perror("SLIST_FOREACH CLEANUP pthread_join current_thread_entry");
         }
         SLIST_REMOVE(&head, current_thread_entry, slist_thread, entries);
+        // free(current_thread_entry);
       }
     }
   }
@@ -126,21 +133,27 @@ void sig_handler(int signo) {
       }
       close(thread_entry->client_socketfd);
       SLIST_REMOVE_HEAD(&head, entries);
+      // free(thread_entry);
     }
 
+    #if !USE_AESD_CHAR_DEVICE
     if (pthread_cancel(timestamp_thread) == -1) {
       perror("timestamp_thread pthread_cancel");
     }
     if (pthread_join(timestamp_thread, NULL) != 0) {
       perror("timestamp_thread pthread_join");
     }
+    #endif
     close(server_socketfd);
     pthread_mutex_destroy(&mutex);
+    #if !USE_AESD_CHAR_DEVICE
     remove(DATA_FILE);
+    #endif
     syslog(LOG_INFO, "Caught signal, exiting");
     closelog();
     exit(EXIT_SUCCESS);
   }
+  #if !USE_AESD_CHAR_DEVICE
   else if (signo == SIGALRM) {
     // pthread_mutex_lock(&mutex);
     // FILE *data_file = fopen(DATA_FILE, "a");
@@ -156,6 +169,7 @@ void sig_handler(int signo) {
     // }
     // pthread_mutex_unlock(&mutex);
   }
+  #endif
 }
 
 void daemonize() {
@@ -195,6 +209,7 @@ void daemonize() {
   // close(STDERR_FILENO);
 }
 
+#if !USE_AESD_CHAR_DEVICE
 void *add_timestamp(void* arg) {
   while (1) {
     time_t current_time;
@@ -215,6 +230,7 @@ void *add_timestamp(void* arg) {
     sleep(10);
   }
 }
+#endif
 
 void *connection_handler (void* thread_arg) {
   struct slist_thread *thread_entry = (struct slist_thread*)thread_arg;
@@ -267,10 +283,49 @@ void *connection_handler (void* thread_arg) {
       // write only up to the newline character
       size_t bytes_to_write = newline - buffer + 1; // include the newline character
       pthread_mutex_lock(&mutex);
+
+      #if USE_AESD_CHAR_DEVICE
+      // for file operations, use open, write, and read when USE_AESD_CHAR_DEVICE is defined
+      FILE *data_file_fd = open(DATA_FILE, O_WRONLY | O_APPEND);
+      if (data_file_fd == -1) {
+        perror("fopen");
+        thread_entry->completed = true;
+        pthread_mutex_lock(&mutex);
+        exit(EXIT_FAILURE);
+      }
+      write(data_file_fd, buffer, bytes_to_write);
+      close(data_file_fd);
+
+      // send the data back
+      data_file_fd = open(DATA_FILE, O_RDONLY);
+      if (data_file == -1) {
+        perror("fopen");
+        thread_entry->completed = true;
+        pthread_mutex_unlock(&mutex);
+        exit(EXIT_FAILURE);
+      }
+
+      // calculate file size
+      off_t file_size = lseek(dataVfile_fd, 0, SEEK_END);
+      lseek(data_file_fd, 0, SEEK_SET);
+
+      // read content
+      char *file_content = malloc(file_size);
+      if (file_content == NULL) {
+        perror("file_content malloc");
+        thread_entry->completed = true;
+        close(data_file_fd);
+        pthread_mutex_unlock(&mutex);
+        exit(EXIT_FAILURE);
+      }
+      read(data_file_fd, file_content, file_size);
+      close(data_file_fd);
+      #else
       FILE *data_file_a = fopen(DATA_FILE, "a");
       if (data_file_a == NULL) {
         perror("fopen");
         thread_entry->completed = true;
+        pthread_mutex_unlock(&mutex);
         exit(EXIT_FAILURE);
       }
       fwrite(buffer, 1, bytes_to_write, data_file_a);
@@ -281,6 +336,7 @@ void *connection_handler (void* thread_arg) {
       if (data_file == NULL) {
         perror("fopen");
         thread_entry->completed = true;
+        pthread_mutex_unlock(&mutex);
         exit(EXIT_FAILURE);
       }
 
@@ -294,10 +350,13 @@ void *connection_handler (void* thread_arg) {
       if (file_content == NULL) {
         perror("file_content malloc");
         thread_entry->completed = true;
+        fclose(data_file);
+        pthread_mutex_unlock(&mutex);
         exit(EXIT_FAILURE);
       }
       fread(file_content, 1, file_size, data_file);
       fclose(data_file);
+      #endif
 
       // send to client
       send(thread_entry->client_socketfd, file_content, file_size, 0);
