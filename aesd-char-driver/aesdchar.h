@@ -24,6 +24,7 @@
 #endif
 
 #include "aesd-circular-buffer.h"
+
 struct aesd_dev
 {
   /**

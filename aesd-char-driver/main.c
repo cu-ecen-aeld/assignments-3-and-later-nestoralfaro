@@ -11,7 +11,7 @@
  *
  */
 
-#include <asm-generic/errno-base.h>
+// #include <asm-generic/errno-base.h>
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/printk.h>
@@ -65,7 +65,7 @@ ssize_t aesd_read(struct file *filp, char __user *buf, size_t count,
   size_t entry_offset = 0;
 
   // check input parameters
-  if (!flip || !buf) {
+  if (!filp || !buf) {
     return -EINVAL;
   }
 
