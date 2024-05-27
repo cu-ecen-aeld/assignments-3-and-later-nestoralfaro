@@ -745,7 +745,7 @@ static void timer_action(union sigval arg) {
             tzset();
             localtime_r(&ts.tv_sec, &tm);
             size_t len = strftime(dt, 100, ISO_2822_TIME_FMT, &tm);
-            strcpy(ts_row, "SHOULD NOT BE PRINTING timestamp:");
+            strcpy(ts_row, "timestamp:");
             strncat(ts_row, dt, len);
             len = strlen(ts_row);
             ts_row[len] = NEWLINE;
@@ -828,4 +828,3 @@ int main(int argc, char **argv) {
     }
 
 }
-

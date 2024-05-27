@@ -2,10 +2,10 @@
 
 case "$1" in
   start)
-    echo ">>>>>>>> MOST RECENT COMMIT Starting aesdsocket <<<<<<<<"
+    echo ">>>>>>>> RECENT COMMIT Starting aesdsocket <<<<<<<<"
     start-stop-daemon -S -n aesdsocket -a /usr/bin/aesdsocket -- -d
     # start-stop-daemon --start --exec /usr/bin/aesdsocket -- -d
-    echo ">>>>>>>> MOST RECENT COMMIT Started aesdsocket <<<<<<<<"
+    echo ">>>>>>>> RECENT COMMIT Started aesdsocket <<<<<<<<"
     ;;
   stop)
     echo ">>>>>>>> Stopping aesdsocket <<<<<<<<"
@@ -18,4 +18,4 @@ case "$1" in
   exit 1
     # ;;
 esac
-# exit 0
+exit 0

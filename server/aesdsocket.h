@@ -44,8 +44,6 @@
 
 
 
-
-
 #include <pthread.h>
 #include "queue.h"
 
@@ -90,3 +88,4 @@ void connection_cleanup(void* param);
  * looping thru LL and cleanup terminated connections and remove them from LL 
 */
 void cleanup_term_conn(int await_termination);
+
