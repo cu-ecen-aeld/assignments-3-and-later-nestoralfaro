@@ -306,13 +306,13 @@ void *connection_handler (void* thread_arg) {
       }
 
       // Seek to the beginning of the file
-      if (lseek(data_file_fd, 0, SEEK_SET) == -1) {
-          perror("lseek SEEK_SET");
-          close(data_file_fd);
-          thread_entry->completed = true;
-          pthread_mutex_unlock(&mutex);
-          exit(EXIT_FAILURE);
-      }
+      // if (lseek(data_file_fd, 0, SEEK_SET) == -1) {
+      //     perror("lseek SEEK_SET");
+      //     close(data_file_fd);
+      //     thread_entry->completed = true;
+      //     pthread_mutex_unlock(&mutex);
+      //     exit(EXIT_FAILURE);
+      // }
 
       char readbuf[1024];
       ssize_t bytes_read;
