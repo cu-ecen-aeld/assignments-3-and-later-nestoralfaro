@@ -17,7 +17,7 @@
 #define PORT 9000
 
 #ifndef USE_AESD_CHAR_DEVICE
-#define USE_AESD_CHAR_DEVICE 0
+#define USE_AESD_CHAR_DEVICE 1
 #endif
 
 #if USE_AESD_CHAR_DEVICE

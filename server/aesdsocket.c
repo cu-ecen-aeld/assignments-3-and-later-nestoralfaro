@@ -75,12 +75,12 @@ int main(int argc, char *argv[]) {
 
   SLIST_INIT(&head);
 
-#if !USE_AESD_CHAR_DEVICE
+  #if !USE_AESD_CHAR_DEVICE
   if (pthread_create(&timestamp_thread, NULL, add_timestamp, NULL) != 0) {
     perror("timestamp_thread pthread_create");
     exit(EXIT_FAILURE);
   }
-#endif
+  #endif
 
   // 3. accept/handle step:
   while (1) {
