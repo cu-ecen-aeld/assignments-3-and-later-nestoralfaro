@@ -218,7 +218,8 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
   }
 
   // update file position and return number of bytes written
-  *f_pos += count;
+  // *f_pos += count;
+  f_pos = 0;
   retval = count;
 
   // free the temporary buffer
