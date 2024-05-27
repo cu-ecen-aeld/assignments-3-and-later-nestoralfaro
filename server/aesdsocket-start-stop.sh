@@ -2,10 +2,10 @@
 
 case "$1" in
   start)
-    echo ">>>>>>>> Starting aesdsocket <<<<<<<<"
+    echo ">>>>>>>> MOST RECENT COMMIT Starting aesdsocket <<<<<<<<"
     start-stop-daemon -S -n aesdsocket -a /usr/bin/aesdsocket -- -d
     # start-stop-daemon --start --exec /usr/bin/aesdsocket -- -d
-    echo ">>>>>>>> Started aesdsocket <<<<<<<<"
+    echo ">>>>>>>> MOST RECENT COMMIT Started aesdsocket <<<<<<<<"
     ;;
   stop)
     echo ">>>>>>>> Stopping aesdsocket <<<<<<<<"
