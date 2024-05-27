@@ -76,10 +76,10 @@ int main(int argc, char *argv[]) {
   SLIST_INIT(&head);
 
   #if !USE_AESD_CHAR_DEVICE
-  if (pthread_create(&timestamp_thread, NULL, add_timestamp, NULL) != 0) {
-    perror("timestamp_thread pthread_create");
-    exit(EXIT_FAILURE);
-  }
+  // if (pthread_create(&timestamp_thread, NULL, add_timestamp, NULL) != 0) {
+  //   perror("timestamp_thread pthread_create");
+  //   exit(EXIT_FAILURE);
+  // }
   #endif
 
   // 3. accept/handle step:
@@ -284,43 +284,6 @@ void *connection_handler (void* thread_arg) {
       size_t bytes_to_write = newline - buffer + 1; // include the newline character
       pthread_mutex_lock(&mutex);
 
-      #if USE_AESD_CHAR_DEVICE
-      // for file operations, use open, write, and read when USE_AESD_CHAR_DEVICE is defined
-      FILE *data_file_fd = open(DATA_FILE, O_WRONLY | O_APPEND);
-      if (data_file_fd == -1) {
-        perror("fopen");
-        thread_entry->completed = true;
-        pthread_mutex_lock(&mutex);
-        exit(EXIT_FAILURE);
-      }
-      write(data_file_fd, buffer, bytes_to_write);
-      close(data_file_fd);
-
-      // send the data back
-      data_file_fd = open(DATA_FILE, O_RDONLY);
-      if (data_file == -1) {
-        perror("fopen");
-        thread_entry->completed = true;
-        pthread_mutex_unlock(&mutex);
-        exit(EXIT_FAILURE);
-      }
-
-      // calculate file size
-      off_t file_size = lseek(dataVfile_fd, 0, SEEK_END);
-      lseek(data_file_fd, 0, SEEK_SET);
-
-      // read content
-      char *file_content = malloc(file_size);
-      if (file_content == NULL) {
-        perror("file_content malloc");
-        thread_entry->completed = true;
-        close(data_file_fd);
-        pthread_mutex_unlock(&mutex);
-        exit(EXIT_FAILURE);
-      }
-      read(data_file_fd, file_content, file_size);
-      close(data_file_fd);
-      #else
       FILE *data_file_a = fopen(DATA_FILE, "a");
       if (data_file_a == NULL) {
         perror("fopen");
@@ -356,7 +319,6 @@ void *connection_handler (void* thread_arg) {
       }
       fread(file_content, 1, file_size, data_file);
       fclose(data_file);
-      #endif
 
       // send to client
       send(thread_entry->client_socketfd, file_content, file_size, 0);
