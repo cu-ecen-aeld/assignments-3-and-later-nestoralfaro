@@ -19,47 +19,26 @@
 # clean:
 # 	$(RM) $(TARGET) $(OBJS)
 
-# ifeq ($(CROSS_COMPILE),aarch64-none-linux-gnu-)
-# 	CC ?= $(CROSS_COMPILE)gcc
-# endif
-#
-# CFLAGS ?= -g -Wall -Werror
-# LDFLAGS ?= -lpthread -lrt
-# SRC := aesdsocket.c datafile.c
-# TARGET ?= aesdsocket
-# OBJS := $(SRC:.c=.o)
-#
-# EXTRA_CFLAGS = -DUSE_AESD_CHAR_DEVICE=$(if $(USE_AESD_CHAR_DEVICE),$(USE_AESD_CHAR_DEVICE),1)
-#
-# default_target: all
-#
-# # Targets
-# all: $(TARGET)
-#
-# $(OBJS) : CFLAGS += $(EXTRA_CFLAGS)
-# $(TARGET) : $(OBJS)	
-# 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) $(INCLUDES) $(OBJS) -o $(TARGET) $(LDFLAGS)
-#
-# clean:
-# 	$(RM) $(TARGET) $(OBJS)
+ifeq ($(CROSS_COMPILE),aarch64-none-linux-gnu-)
+	CC ?= $(CROSS_COMPILE)gcc
+endif
 
-.PHONY: all clean	
-CC ?= gcc	
-CROSS_COMPILE ?=
-
-CFLAGS ?= -g -Wall -Werror 
-SRCS = aesdsocket.c
+CFLAGS ?= -g -Wall -Werror
+LDFLAGS ?= -lpthread -lrt
+SRC := aesdsocket.c datafile.c
 TARGET ?= aesdsocket
-LDFLAGS ?= -pthread -lrt
+OBJS := $(SRC:.c=.o)
 
-$(TARGET):$(TARGET).o
-	$(CROSS_COMPILE)$(CC) $(CFLAGS) $(LDFLAGS) -I/ $(TARGET).o -o $(TARGET)	
+EXTRA_CFLAGS = -DUSE_AESD_CHAR_DEVICE=$(if $(USE_AESD_CHAR_DEVICE),$(USE_AESD_CHAR_DEVICE),1)
 
-$(TARGET).o:$(TARGET).c
-	$(CROSS_COMPILE)$(CC) $(CFLAGS) $(LDFLAGS) -c $(TARGET).c -o $(TARGET).o	
+default_target: all
 
-
+# Targets
 all: $(TARGET)
 
-clean:	
-	rm -f *.o $(TARGET)
+$(OBJS) : CFLAGS += $(EXTRA_CFLAGS)
+$(TARGET) : $(OBJS)	
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) $(INCLUDES) $(OBJS) -o $(TARGET) $(LDFLAGS)
+
+clean:
+	$(RM) $(TARGET) $(OBJS)
