@@ -238,7 +238,6 @@ void *connection_handler (void* thread_arg) {
   struct sockaddr_in client_address;
   socklen_t client_address_size = sizeof(client_address);
   if (getpeername(thread_entry->client_socketfd, (struct sockaddr *)&client_address, &client_address_size) == 0) {
-    syslog(LOG_DEBUG, "USE_AESD_CHAR_DEVICE value: %d", USE_AESD_CHAR_DEVICE);
     syslog(LOG_INFO, "Accepted connection from %s\n", inet_ntoa(client_address.sin_addr));
   }
 
@@ -297,12 +296,32 @@ void *connection_handler (void* thread_arg) {
           exit(EXIT_FAILURE);
       }
 
-      if (write(data_file_fd, buffer, bytes_to_write) == -1) {
-          perror("write");
-          close(data_file_fd);
-          thread_entry->completed = true;
-          pthread_mutex_unlock(&mutex);
-          exit(EXIT_FAILURE);
+
+      struct aesd_seekto seekto;
+      const char *match_cmd = "AESDCHAR_IOCSEEKTO:";
+      char *cmd = strstr(buffer, match_cmd);
+      if (cmd) {
+        char *token = strtok(cmd + strlen(match_cmd), ",");
+        if (token) {
+          seekto.write_cmd = strtoul(token, NULL, 10);
+          token = strtok(NULL, ",");
+          if (token) {
+            seekto.write_cmd_offset = strtoul(token, NULL, 10);
+            if (ioctl(data_file_fd, AESDCHAR_IOCSEEKTO, &seekto) != 0) {
+              syslog(LOG_ERR, "ioctl AESDCHAR_IOCSEEKTO failed: %s", strerror(errno));
+            }
+          }
+        }
+      }
+      else {
+        if (write(data_file_fd, buffer, bytes_to_write) == -1) {
+            // perror("write");
+          syslog(LOG_ERR, "write failed: %s", strerror(errno));
+            close(data_file_fd);
+            thread_entry->completed = true;
+            pthread_mutex_unlock(&mutex);
+            exit(EXIT_FAILURE);
+        }
       }
 
       char readbuf[1024];

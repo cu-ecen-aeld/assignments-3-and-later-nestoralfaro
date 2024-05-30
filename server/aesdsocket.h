@@ -1,3 +1,4 @@
+// #include <cstdint>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,6 +21,13 @@
 #ifndef USE_AESD_CHAR_DEVICE
 # define USE_AESD_CHAR_DEVICE 1
 #endif
+
+#if USE_AESD_CHAR_DEVICE
+  #include <errno.h>
+  #include <sys/ioctl.h>
+  #include "../aesd-char-driver/aesd_ioctl.h"
+#endif
+
 
 #if USE_AESD_CHAR_DEVICE
 # define DATA_FILE "/dev/aesdchar"
