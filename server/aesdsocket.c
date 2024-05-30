@@ -312,16 +312,18 @@ void *connection_handler (void* thread_arg) {
             }
           }
         }
+        total_bytes_received = 0; // reset buffer
       }
       else {
         if (write(data_file_fd, buffer, bytes_to_write) == -1) {
-            // perror("write");
+          // perror("write");
           syslog(LOG_ERR, "write failed: %s", strerror(errno));
-            close(data_file_fd);
-            thread_entry->completed = true;
-            pthread_mutex_unlock(&mutex);
-            exit(EXIT_FAILURE);
+          close(data_file_fd);
+          thread_entry->completed = true;
+          pthread_mutex_unlock(&mutex);
+          exit(EXIT_FAILURE);
         }
+        total_bytes_received -= bytes_to_write; // adjust for written bytes
       }
 
       char readbuf[1024];
@@ -390,7 +392,7 @@ void *connection_handler (void* thread_arg) {
       free(file_content);
       #endif
       pthread_mutex_unlock(&mutex);
-      total_bytes_received = 0; // reset for the next packet
+      // total_bytes_received = 0; // reset for the next packet
     }
   }
 
