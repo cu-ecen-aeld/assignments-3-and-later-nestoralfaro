@@ -21,7 +21,7 @@
 #include <linux/fs.h> // file_operations
 #include <linux/slab.h>
 #include <linux/uaccess.h>
-#include <sys/types.h>
+// #include <sys/types.h>
 // #include <stdint.h>
 // #include <stdio.h>
 // #include "aesd-circular-buffer.h"
@@ -237,6 +237,7 @@ loff_t aesd_llseek(struct file *filp, loff_t off, int whence) {
   struct aesd_dev *dev = filp->private_data;
   loff_t newpos;
   size_t total_size = 0;
+  int i;
 
   if (mutex_lock_interruptible(&dev->lock)) {
     return -ERESTARTSYS;
@@ -247,7 +248,7 @@ loff_t aesd_llseek(struct file *filp, loff_t off, int whence) {
     total_size += dev->circular_buffer.entry[i].size;
   }
 
-  switch(whence) {
+  switch (whence) {
     case SEEK_SET:
       newpos = off;
       break;
